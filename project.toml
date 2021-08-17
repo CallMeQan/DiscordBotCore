@@ -1,0 +1,2 @@
+﻿[[build.buildpacks]]
+uri = "jincod/dotnetcore"

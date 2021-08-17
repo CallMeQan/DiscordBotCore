@@ -2,10 +2,11 @@
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 namespace DiscordBot.DBCommand
 {
-    [Group("server")]
+    [Group("server"), RequirePermissions(Permissions.ManageGuild), Aliases("sv")]
     public class ServerCommand : BaseCommandModule
     {
         [Command("serverinfo")]
@@ -79,6 +80,32 @@ namespace DiscordBot.DBCommand
         public async Task TotalChannelAsync(CommandContext ctx)
         {
             await ctx.RespondAsync(ctx.Guild.Channels.Count.ToString());
+        }
+
+        [Command("vcbot"), Description("")]
+        public async Task VcBotCommandAsync(CommandContext ctx) {
+            DiscordEmbedBuilder embedBuilder = new DiscordEmbedBuilder { 
+                Author = new DiscordEmbedBuilder.EmbedAuthor { 
+                    Name=ctx.Member.Username,
+                    IconUrl = ctx.Member.AvatarUrl
+                },
+                Description = "Currently bot in voice (in used):\n",
+                Color = DiscordColor.Azure
+            };
+
+            foreach (KeyValuePair<ulong, DiscordChannel> item in ctx.Guild.Channels)
+            {
+                if (item.Value.Type == ChannelType.Voice)
+                {
+                    foreach (DiscordMember mem in item.Value.Users)
+                    {
+                        if (mem.IsBot) {
+                            embedBuilder.Description = embedBuilder.Description + mem.Mention + " ";
+                        }
+                    }
+                }
+            }
+            await ctx.RespondAsync(embedBuilder);
         }
     }
 }

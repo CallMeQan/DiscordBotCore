@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace DiscordBotCore
+namespace DiscordBot
 {
     class Program
     {
@@ -37,7 +37,8 @@ namespace DiscordBotCore
                 StringPrefixes = new[] { "sv." },
 
                 // enable mentioning the bot as a command prefix
-                EnableMentionPrefix = true
+                EnableMentionPrefix = true,
+                EnableDms = false
             };
 
             this.client = new DiscordClient(configuration);
@@ -50,6 +51,7 @@ namespace DiscordBotCore
             this.commands.RegisterCommands<DiscordBot.DBCommand.Channel.ChannelCommand>();
             this.commands.RegisterCommands<DiscordBot.DBCommand.ServerCommand>();
             this.commands.RegisterCommands<DiscordBot.DBCommand.Channel.VoiceCommand>();
+            this.commands.RegisterCommands<DiscordBot.DBCommad.ModerationCommand>();
 
             this.commands.CommandExecuted += this.Commands_CommandExecuted;
             this.commands.CommandErrored += this.Commands_CommandErrored;

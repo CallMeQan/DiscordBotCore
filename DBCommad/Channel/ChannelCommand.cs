@@ -14,6 +14,28 @@ namespace DiscordBot.DBCommand.Channel
     [RequirePermissions(Permissions.ManageChannels)] // and restrict this to users who have appropriate permissions
     public class ChannelCommand : BaseCommandModule
     {
+        [GroupCommand()]
+        public async Task ChannelCommandAsync(CommandContext ctx) {
+            DiscordGuild guild = ctx.Guild;
+            List<string> list_text_channel = new List<string>();
+            foreach (KeyValuePair<ulong, DiscordChannel> item in guild.Channels)
+            {
+                if (item.Value.Type == ChannelType.Text || item.Value.Type == ChannelType.News || item.Value.Type == ChannelType.Private)
+                {
+                    list_text_channel.Add(item.Value.Name);
+                }
+            }
+
+            await ctx.RespondAsync(new DiscordEmbedBuilder
+            {
+                Author = new DiscordEmbedBuilder.EmbedAuthor
+                {
+                    Name = guild.Name,
+                    IconUrl = guild.IconUrl
+                },
+            }.AddField("Total text channel: " + list_text_channel.Count, string.Join(',', list_text_channel)));
+        }
+
         #region checkperms command
         [Command("checkperms")]
         public async Task CheckPermsAsync(CommandContext ctx,
@@ -63,14 +85,14 @@ namespace DiscordBot.DBCommand.Channel
         private const string DescriptionAddPermsArgs = "Some permission, PERMISSION ARE SPLIT AS `,`";
         private const string DescriptionAddPermChannel = "Channel need to overwrited";
         private const string DescriptionAddPermUserOrRole = "User or role need to overwrite in that channel, add new if doesnt exist";
-        [Command("addoverwrite"), Aliases("addrole"), Description("Add overwrite for role")]
+        [Command("addoverwrite"), Description("Add overwrite for role")]
         public async Task AddOverwriteAsync(CommandContext ctx,
             [Description(DescriptionAddPermChannel)] DiscordChannel channel,
             [Description(DescriptionAddPermUserOrRole)] DiscordRole role,
             [Description(DescriptionAddPermsArgs), RemainingText] string perms_fixed)
         => await AddOverwriteChannel(ctx, channel, role, perms_fixed);
 
-        [Command("addoverwrite"), Aliases("adduser"), Description("Add overwrite for member")]
+        [Command("addoverwrite"),Description("Add overwrite for member")]
         public async Task AddOverwriteAsync(CommandContext ctx,
             [Description(DescriptionAddPermChannel)] DiscordChannel channel,
             [Description(DescriptionAddPermUserOrRole)] DiscordMember member,
@@ -163,6 +185,90 @@ namespace DiscordBot.DBCommand.Channel
                 await ctx.Channel.SendMessageAsync(e.Message);
             }
         }
+        #endregion
+
+        #region allow cmd
+        [Command("allow")]
+        public async Task AllowCommandAsync(CommandContext ctx,
+            [Description("Who? ping or id")] DiscordMember member,
+            [Description("Which? mention or id")] DiscordChannel channel) 
+        {
+            bool yesss = false;
+            Permissions allow = Permissions.None;
+            Permissions deny = Permissions.None;
+            foreach (DiscordOverwrite overwrite in channel.PermissionOverwrites)
+            {
+                if (overwrite.Type == OverwriteType.Member)
+                {
+                    DiscordMember mem_overwrite = await overwrite.GetMemberAsync();
+                    if (mem_overwrite.Id == member.Id)
+                    {
+                        allow = overwrite.Allowed;
+                        deny = overwrite.Denied;
+                        yesss = true;
+                    }
+                }
+            }
+            List<Permissions> perms_to_allow = new List<Permissions> { Permissions.AccessChannels, Permissions.ReadMessageHistory, Permissions.SendMessages };
+            if (yesss)
+            {
+                allow = PermissionChecker.GrantByList(allow, perms_to_allow);
+                await channel.AddOverwriteAsync(member, allow: allow, deny: deny);
+                await ctx.RespondAsync("Allowed " + member.Mention+" to "+channel.Mention);
+            }
+            else
+            {
+                await channel.AddOverwriteAsync(member, allow: PermissionChecker.GrantByList(allow, perms_to_allow));
+                await ctx.RespondAsync("Allowed " + member.Mention +" to "+channel.Mention);
+            }
+        }
+        #endregion
+
+        #region new cmd
+        [Command("new")]
+        public async Task NewCommandAsync(CommandContext ctx,
+            [Description("Name of the new channel, DO NOT ADD WHITESPACE")] string name,
+            [Description("Time of slowmode, 0 = disable slow mode, max 21600s (6h), default disable")] int slowmodesecs = 0,
+            [Description("nsfw enable? (Not safe for work)")] string isNSFW = "no")
+        {
+            try
+            {
+                ChannelCommandConverter.ResultConverterNewCmd resultConverter = ChannelCommandConverter.NewCommandConverter(name, slowmodesecs, isNSFW);
+                await ctx.Guild.CreateChannelAsync(resultConverter.name, ChannelType.Text, 
+                    nsfw:resultConverter.isNsfw, perUserRateLimit:resultConverter.slowtime);
+                await ctx.RespondAsync("Create channel succeed!");
+            }
+            catch (Exception e)
+            {
+                await ctx.Channel.SendMessageAsync(e.Message);
+            }
+        }
+        [Command("new")]
+        public async Task NewCommandAsync(CommandContext ctx, 
+            [Description("Category mention or id")] DiscordChannel category, 
+            [Description("Name of the new channel, DO NOT ADD WHITESPACE")] string name,
+            [Description("Time of slowmode, 0 = disable slow mode, max 21600s (6h), default disable")] int slowmodesecs = 0,
+            [Description("nsfw enable? (Not safe for work)")] string isNSFW = "no")
+        {
+            if (!category.IsCategory)
+            {
+                await ctx.RespondAsync("Argument category is invalid!");
+                return;
+            }
+            try
+            {
+                ChannelCommandConverter.ResultConverterNewCmd resultConverter = ChannelCommandConverter.NewCommandConverter(name, slowmodesecs, isNSFW);
+                await ctx.Guild.CreateChannelAsync(resultConverter.name, ChannelType.Text, 
+                    nsfw:resultConverter.isNsfw, perUserRateLimit:resultConverter.slowtime, 
+                    parent:category);
+                await ctx.RespondAsync("Create channel succeed!");
+            }
+            catch (Exception e)
+            {
+                await ctx.Channel.SendMessageAsync(e.Message);
+            }   
+        }
+
         #endregion
     }
 

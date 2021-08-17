@@ -7,10 +7,17 @@ namespace DiscordBot.Utils
 {
     public class PermissionChecker
     {
-
+        /// <summary>
+        /// <code>
+        /// string input = "Manage channel, Manage Server"
+        /// PermissionChecker.ConvertPerms(input);
+        /// </code>
+        /// </summary>
+        /// <param name="input">a string of permission</param>
+        /// <returns>Permission converted</returns>
         public static Permissions ConvertPerms(string input)
         {
-            string[] remove_whitespace(string[] a)
+            string[] remove_whitespace_begin_and_last(string[] a)
             {
                 for (int i = 0; i < a.Length; i++)
                 {
@@ -19,7 +26,7 @@ namespace DiscordBot.Utils
                 return a;
             }
             Permissions return_ = new Permissions();
-            string[] input_converted = remove_whitespace(input.ToLower().Split(','));
+            string[] input_converted = remove_whitespace_begin_and_last(input.ToLower().Split(','));
 
             foreach (KeyValuePair<Permissions, string[]> perm in DiscordBot.Utils.PermissionChecker.perms)
             {
@@ -31,6 +38,17 @@ namespace DiscordBot.Utils
                 }
             }
             return return_;
+        }
+
+        public static Permissions GrantByList(Permissions orgin_perm, List<Permissions> perms_grant) {
+            perms_grant.ForEach(perm => {
+                orgin_perm = PermissionMethods.Grant(orgin_perm, perm);
+            });
+            return orgin_perm;
+        }
+
+        public static Permissions GrantByString(Permissions orgin_perm, string input) {
+            return PermissionMethods.Grant(orgin_perm, ConvertPerms(input));
         }
 
         public static Dictionary<Permissions, string[]> perms = new Dictionary<Permissions, string[]>() {
