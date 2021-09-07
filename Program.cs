@@ -15,7 +15,7 @@ namespace DiscordBot
 
         public DiscordClient client { get; set; }
         public CommandsNextExtension commands { get; set; }
-        private static readonly string TOKEN = "ODU3ODY5MTQ1MDUyMDIwNzM2.YNV25g.hzf3lniPYjXGOhg-ODXf2fg8ZtY";
+        private static readonly string TOKEN = ":)";
 
         static void Main(string[] args)
         {
